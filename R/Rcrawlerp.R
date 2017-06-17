@@ -58,33 +58,35 @@
 #'
 #' Khalil, S., & Fakir, M. (2017). RCrawler: An R package for parallel web crawling and scraping. SoftwareX, 6, 98-106.
 #'
-#'  @examples
+#' @examples
 #'
-#' \\dontrun{
-#'  Rcrawler(Website ="http://glofile.com/", no_cores = 2, no_conn = 6)
-#'  #Crawl, index, and store web pages using 2 cores and 2 parallel requests
+#' \dontrun{
 #'
-#'  #Rcrawler(Website = "http://glofile.com/", urlregexfilter =  "/\\d{4}/\\d{2}/",
+#'  Rcrawler(Website ="http://glofile.com/", no_cores = 4, no_conn = 4)
+#'
+#'  #Crawl, index, and store web pages using 4 cores and 4 parallel requests
+#'
+#'  Rcrawler(Website = "http://glofile.com/", urlregexfilter =  "/[0-9]{4}/[0-9]{2}/",
 #'  ExtractPatterns = c("//*/article","//*/h1"), PatternsNames = c("content","title"))
 #'
 #'  #Crawl the website using the default configuration and scrape content matching two XPath
-#'   patterns only from post pages matching a specific regular expression. Note that the user can
-#'   use the excludepattern  parameter to exclude a node from being extracted,
+#'   patterns only from post pages matching a specific regular expression "/[0-9]{4}/[0-9]{2}/".
+#'   Note that the user can use the excludepattern  parameter to exclude a node from being extracted,
 #'   e.g., in the case that a desired node includes (is a parent of) an undesired "child" node.
+#'
 #'   Rcrawler(Website = "http://www.example.com/", no_cores=8, no_conn=8, Obeyrobots = TRUE,
-#'  Useragent="Mozilla 3.11")
+#'   Useragent="Mozilla 3.11")
+#'   # Crawl and index the website using 8 cores and 8 parallel requests with respect to
+#'   robot.txt rules.
 #'
-#'  # Crawl and index the website using 8 cores and 8 parallel requests with respect to
-#'  robot.txt rules.
-#'
-#'  Rcrawler(Website = "http://www.example.com/", no_cores = 4, no_conn = 4,
-#'  urlregexfilter =  "/\\d{4}/\\d{2}/", DIR = "./myrepo", MaxDepth=3)
+#'   Rcrawler(Website = "http://www.example.com/", no_cores = 4, no_conn = 4,
+#'   urlregexfilter =  "/[0-9]{4}/[0-9]{2}/", DIR = "./myrepo", MaxDepth=3)
 #'
 #'  # Crawl the website using  4 cores and 4 parallel requests. However, this will only
-#'   index URLs matching the regular expression pattern (/\\d{4}/\\d{2}/), and stores pages
+#'   index URLs matching the regular expression pattern (/[0-9]{4}/[0-9]{2}/), and stores pages
 #'   in a custom directory "myrepo". The crawler stops when it reaches the third level.
-#'
 #' }
+#'
 #'
 #' @author salim khalil
 #' @import foreach doParallel parallel data.table
