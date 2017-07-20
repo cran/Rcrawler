@@ -5,10 +5,9 @@
 \title{Rcrawler}
 \usage{
 Rcrawler(Website, no_cores, no_conn, MaxDepth, DIR, RequestsDelay = 0,
-  duplicatedetect = FALSE, Obeyrobots = FALSE, Useragent, Timeout = 5,
-  URLlenlimit = 255, urlExtfilter, urlregexfilter, ignoreUrlParams,
-  statslinks = FALSE, Encod, ExtractPatterns, PatternsNames, ExcludePatterns,
-  ExtractAsText = TRUE)
+  Obeyrobots = FALSE, Useragent, Timeout = 5, URLlenlimit = 255,
+  urlExtfilter, urlregexfilter, ignoreUrlParams, statslinks = FALSE, Encod,
+  ExtractPatterns, PatternsNames, ExcludePatterns, ExtractAsText = TRUE)
 }
 \arguments{
 \item{Website}{character, the root URL of the website to crawl and scrape.}
@@ -22,8 +21,6 @@ Rcrawler(Website, no_cores, no_conn, MaxDepth, DIR, RequestsDelay = 0,
 \item{DIR}{character, correspond to the path of the local repository where all crawled data will be stored ex, "C:/collection" , by default R working directory.}
 
 \item{RequestsDelay}{integer, The time interval between each round of parallel http requests, in seconds used to avoid overload the website server. default to 0.}
-
-\item{duplicatedetect}{boolean, if true the crawler performs a near duplicate detection using SimHash algorithm to ignore documents that has been scraped.}
 
 \item{Obeyrobots}{boolean, if TRUE, the crawler will parse the website\'s robots.txt file and obey its rules allowed and disallowed directories.}
 

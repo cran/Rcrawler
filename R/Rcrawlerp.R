@@ -13,7 +13,6 @@
 #' @param MaxDepth integer, repsents the max deph level for the crawler, this is not the file depth in a directory structure, but 1+ number of links between this document and root document, default to 10.
 #' @param DIR character, correspond to the path of the local repository where all crawled data will be stored ex, "C:/collection" , by default R working directory.
 #' @param RequestsDelay integer, The time interval between each round of parallel http requests, in seconds used to avoid overload the website server. default to 0.
-#' @param duplicatedetect boolean, if true the crawler performs a near duplicate detection using SimHash algorithm to ignore documents that has been scraped.
 #' @param Obeyrobots boolean, if TRUE, the crawler will parse the website\'s robots.txt file and obey its rules allowed and disallowed directories.
 #' @param Useragent character, the User-Agent HTTP header that is supplied with any HTTP requests made by this function.it is important to simulate different browser's user-agent to continue crawling without getting banned.
 #' @param Timeout integer, the maximum request time, the number of seconds to wait for a response until giving up, in order to prevent wasting time waiting for responses from slow servers or huge pages, default to 5 sec.
@@ -97,8 +96,7 @@
 #'
 
 
-Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,
-                     duplicatedetect=FALSE, Obeyrobots=FALSE,
+Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,Obeyrobots=FALSE,
                      Useragent, Timeout=5, URLlenlimit=255, urlExtfilter,
                      urlregexfilter, ignoreUrlParams, statslinks=FALSE, Encod,
                      ExtractPatterns,PatternsNames,ExcludePatterns,ExtractAsText=TRUE) {
@@ -142,7 +140,7 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,
   if(!missing(ExtractPatterns)) {
     Filecontent <- file(paste(path,"/","extracted_contents.csv", sep = ""), "w")
       }
-
+  duplicatedetect<-FALSE
   #create Dataframe
   id<-vector()
   urls<-vector()
@@ -226,27 +224,28 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,
       flush.console()
      # timev[pos]<<-Sys.time()
      # timef[pos]<<-format(Sys.time(), "%M,%S")
-      links<-c(links,allpaquet[[s]][2])
       # Les page null ne sont pas ajouter au shema
       #debugg<<-allpaquet
       #debugg2<<-shemav
-      if(!is.null(allpaquet[[s]][[2]])){
+      if(!is.null(allpaquet[[s]][2]) && !grepl("grepl", allpaquet[[s]][2])){
+        links<-c(links,allpaquet[[s]][2])
+        #debugg2<<-allpaquet[[s]][2]
           if (allpaquet[[s]][[1]][[3]]!="NULL" && allpaquet[[s]][[1]][[10]]!="NULL" ){
         #index filter
           if (grepl(urlregexfilter,allpaquet[[s]][[1]][[2]])) {
             #check for duplicate webpage & checksum calculation
             contentx<-allpaquet[[s]][[1]][[10]]
-            if (duplicatedetect==TRUE){
-            hash<-getsimHash(contentx,128)
+            # if (duplicatedetect==TRUE){
+            # hash<-getsimHash(contentx,128)
             # Ajouter au shema uniqument les liens non-repete
-            if (!(hash %in% pkg.env$shema$hashcode)){
-              # posx, actual position of DF shema
-              posx<-posx+1
-              pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],hash)
-              filename<-paste(posx,".html")
-              filepath<-paste(path,"/",filename, sep = "")
-              write(allpaquet[[s]][[1]][[10]],filepath) }
-            } else {
+            # if (!(hash %in% pkg.env$shema$hashcode)){
+            # posx, actual position of DF shema
+            #  posx<-posx+1
+            #  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],hash)
+            #  filename<-paste(posx,".html")
+            #  filepath<-paste(path,"/",filename, sep = "")
+            #  write(allpaquet[[s]][[1]][[10]],filepath) }
+            #  } else {
               posx<-posx+1
               pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],'')
               filename<-paste(posx,".html")
@@ -271,7 +270,7 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,
 
                 assign("DATA", pkg.env$Exdata, envir = envi )
               }
-            }
+           # }
           }
       #calculate level
       #if(M==pos){
