@@ -6,8 +6,9 @@
 \usage{
 Rcrawler(Website, no_cores, no_conn, MaxDepth, DIR, RequestsDelay = 0,
   Obeyrobots = FALSE, Useragent, Timeout = 5, URLlenlimit = 255,
-  urlExtfilter, urlregexfilter, ignoreUrlParams, statslinks = FALSE, Encod,
-  ExtractPatterns, PatternsNames, ExcludePatterns, ExtractAsText = TRUE)
+  urlExtfilter, urlregexfilter, ignoreUrlParams, KeywordsFilter,
+  KeywordsAccuracy, statslinks = FALSE, Encod, ExtractPatterns, PatternsNames,
+  ExcludePatterns, ExtractAsText = TRUE)
 }
 \arguments{
 \item{Website}{character, the root URL of the website to crawl and scrape.}
@@ -35,6 +36,10 @@ Rcrawler(Website, no_cores, no_conn, MaxDepth, DIR, RequestsDelay = 0,
 \item{urlregexfilter}{character's vector, filter crawled Urls by regular expression pattern, this is useful when you try to scrape content or index only specific web pages (product pages, post pages).}
 
 \item{ignoreUrlParams}{character's vector, the list of Url paremeter to be ignored during crawling .}
+
+\item{KeywordsFilter}{character vector,  For users who desires to scrape or collect only web pages that contains some keywords one or more. Rcrawler calculate an accuracy score based of the number of founded keywords. This parameter must be a vector with at least one keyword like c("mykeyword").}
+
+\item{KeywordsAccuracy}{integer value range bewteen 0 and 100, used only with KeywordsFilter parameter to determine the accuracy of web pages to collect. The web page Accuracy value is calculated using the number of matched keywords and their occurence.}
 
 \item{statslinks}{boolean, if TRUE, the crawler counts the number of input and output links of each crawled web page.}
 
@@ -109,6 +114,14 @@ Khalil, S., & Fakir, M. (2017). RCrawler: An R package for parallel web crawling
  # Crawl the website using  4 cores and 4 parallel requests. However, this will only
   index URLs matching the regular expression pattern (/[0-9]{4}/[0-9]{2}/), and stores pages
   in a custom directory "myrepo". The crawler stops when it reaches the third level.
+
+  Rcrawler(Website = "http://www.example.com/", KeywordsFilter = c("keyword1", "keyword2"))
+ # Crawl the website and collect only webpages containing keyword1 or keyword2 or both.
+
+  Rcrawler(Website = "http://www.example.com/", KeywordsFilter = c("keyword1", "keyword2"),
+   KeywordsAccuracy = 50)
+ # Crawl the website and collect only webpages that has an accuracy percentage higher than 50\%
+  of matching keyword1 and keyword2.
 }
 
 
