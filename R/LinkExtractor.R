@@ -15,7 +15,7 @@
 #' @param removeparams character vector, list of url parameters to be removed/ignored
 #' @return return a list of two elements, the first is a list containing the web page details (url, encoding-type, content-type, content ... etc), the second is a character-vector containing the list of retreived urls.
 #' @author salim khalil
-#' @import httr xml2
+#' @import httr xml2 data.table
 #' @examples
 #'
 #' pageinfo<-LinkExtractor(url="http://www.glofile.com")
@@ -73,17 +73,12 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URL
               if( nchar(links[s])<=URLlenlimit) {
                 ext<-tools::file_ext(sub("\\?.+", "", basename(links[s])))
                 # 6 Filtre eliminer les liens externes , le lien source lui meme, les lien avec diese et les liens deja dans dans liste ( evite double), les types de fichier filtrer, les lien tres longs , les liens de type share
-                if(grepl(domain,links[s]) && !(url==links[s]) && !(links[s] %in% links2) && !(ext %in% urlExtfilter)){
+                #&& !(url==links[s])
+                if(grepl(domain,links[s]) && !(links[s] %in% links2) && !(ext %in% urlExtfilter)){
                   links2<-c(links2,links[s])
                 #calcul de nombre des liens OUT
                   nblinks<-nblinks+1
                   }
-                #calcul de nombre des liens IN
-                if (statslinks){
-                if(links[s] %in% pkg.env$shema$urls){
-                index<-pkg.env$shema[grep(paste("^",links[s],"$", sep=""),pkg.env$shema$urls),1]
-                pkg.env$shema$inn[as.numeric(index)]<-as.numeric(pkg.env$shema$inn[as.numeric(index)])+1}
-                }
               }
             }
           }
@@ -93,14 +88,8 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URL
     } else {links2 <- vector()
             cont<-"NULL"}
     #Ligne - page detail
-    if (!statslinks){
     pageinfo<-list(id,url,"finished",lev,nblinks,"",page$status_code,gsub("(.*)\\;.*", "\\1", page$headers$`content-type`),gsub(".*\\;.", "\\1", page$headers$`content-type`),cont)
-    } else {
-    pageinfo<-list(id,url,"finished",lev,nblinks,pkg.env$shema$inn[id],page$status_code,gsub("(.*)\\;.*", "\\1", page$headers$`content-type`),gsub(".*\\;.", "\\1", page$headers$`content-type`),cont)
-
-      }
-
-    } else {
+    }else {
       links2 <- vector()
       pageinfo<-list(id,url,"NULL",lev,"","","","","")
             }
