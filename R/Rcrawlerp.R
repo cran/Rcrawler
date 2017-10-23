@@ -123,7 +123,8 @@
 Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,Obeyrobots=FALSE,
                      Useragent, Timeout=5, URLlenlimit=255, urlExtfilter,
                      urlregexfilter, ignoreUrlParams, KeywordsFilter,KeywordsAccuracy,statslinks=FALSE, Encod,
-                     ExtractPatterns,PatternsNames,ExcludePatterns,ExtractAsText=TRUE, ManyPerPattern=FALSE, NetworkData=FALSE) {
+                     ExtractPatterns,PatternsNames,ExcludePatterns,ExtractAsText=TRUE, ManyPerPattern=FALSE,
+                     NetworkData=FALSE) {
 
   if (missing(DIR)) DIR<-getwd()
   if (missing(KeywordsAccuracy)) KeywordsAccuracy<-1

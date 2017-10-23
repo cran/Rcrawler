@@ -12,13 +12,13 @@
 #' return a named list of extracted content
 #' @author salim khalil
 #' @examples
-#'
+#' \dontrun{
 #' pageinfo<-LinkExtractor("http://glofile.com/index.php/2017/06/08/athletisme-m-a-rome/")
 #' #Retreive the webpge header and data
 #'
 #' Data<-ContentScraper(pageinfo[[1]][[10]],c("//head/title","//*/article"),c("title", "article"))
 #' #Extract the title and the article from webpage content using Xpaths
-#'
+#' }
 #' @import  xml2
 #' @export
 #'

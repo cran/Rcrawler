@@ -19,6 +19,9 @@
 #' @examples
 #'
 #' pageinfo<-LinkExtractor(url="http://www.glofile.com")
+#' #Pageinfo handle page header detail, as well as content, and internal links.
+#' #pageinfo[[1]][[10]] : page content
+#' #pageinfo[[2]] : Internal urls
 #'
 #' @export
 
@@ -43,7 +46,7 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URL
       # 4 if page content is html
       if(grepl("html",page$headers$`content-type`)){
         if (missing(encod)){
-        x<-as.character(content(page, type = "htmlTreeParse", as="text"))
+        x<-as.character(content(page, type = "htmlTreeParse", as="text", encoding = "UTF-8"))
         cont<-x
         } else {
         x<-as.character(content(page, type = "htmlTreeParse", as="text", encoding = encod))
@@ -88,7 +91,9 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URL
     } else {links2 <- vector()
             cont<-"NULL"}
     #Ligne - page detail
-    pageinfo<-list(id,url,"finished",lev,nblinks,"",page$status_code,gsub("(.*)\\;.*", "\\1", page$headers$`content-type`),gsub(".*\\;.", "\\1", page$headers$`content-type`),cont)
+    contenttype<-tryCatch(gsub("(.*)\\;.*", "\\1", page$headers$`content-type`), error=function(e) "NA")
+    contentencod<-tryCatch(gsub("(.*)=(.*)","\\2",gsub(".*\\;.", "\\1", page$headers$`content-type`)), error=function(e) "NA")
+    pageinfo<-list(id,url,"finished",lev,nblinks,"",page$status_code,contenttype,contentencod,cont)
     }else {
       links2 <- vector()
       pageinfo<-list(id,url,"NULL",lev,"","","","","")
