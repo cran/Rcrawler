@@ -9,7 +9,7 @@
 #' @param Timeout ,default to 5s
 #' @param URLlenlimit interger, the url character length limit to index, default to 255 characters (to avoid spider traps)
 #' @param urlExtfilter character vector, the list of file extensions to exclude from indexing, by dfault a large list is defined (html pages only are permitted) in order to prevent large files downloading; To define your own use c(ext1,ext2,ext3 ...)
-#' @param statslinks  boolean, specifies if input and output links shoud be counted, work only when the function is called from the main function \code{scrawler}
+#' @param ExternalLInks boolean, default FALSE, if set to TRUE external links also are returned.
 #' @param urlbotfiler character vector , directories/files restricted by robot.txt
 #' @param encod character, specify the encoding of th web page
 #' @param removeparams character vector, list of url parameters to be removed/ignored
@@ -18,15 +18,16 @@
 #' @import httr xml2 data.table
 #' @examples
 #'
-#' pageinfo<-LinkExtractor(url="http://www.glofile.com")
+#' pageinfo<-LinkExtractor(url="http://www.glofile.com", ExternalLInks = TRUE)
 #' #Pageinfo handle page header detail, as well as content, and internal links.
 #' #pageinfo[[1]][[10]] : page content
-#' #pageinfo[[2]] : Internal urls
+#' #pageinfo[[2]] : Internal hyperlinks
+#' #pageinfo[[3]] : External hyperlinks
 #'
 #' @export
 
-LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URLlenlimit=255,
-                          urlExtfilter, statslinks=FALSE, encod, urlbotfiler, removeparams) {
+LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=6, URLlenlimit=255,
+                          urlExtfilter, encod, urlbotfiler, removeparams, ExternalLInks=FALSE) {
   nblinks<-0
   pageinfo<-list()
   if (missing(removeparams)) removeparams<-""
@@ -35,10 +36,11 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URL
   if (missing(lev)) lev<-sample(1:1000, 1)
   if (missing(IndexErrPages)) errstat<-c(200)
   else errstat<-c(200,IndexErrPages)
-  if(missing(Useragent)) Useragent="Mozilla/5.0 (Windows NT 6.3; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0"
+  if(missing(Useragent)) Useragent="Mozilla/5.0 (Windows NT 6.3; WOW64; rv:42.0) Firefox/42.0"
   if(missing(urlExtfilter)) urlExtfilter<-c("flv","mov","swf","txt","xml","js","css","zip","gz","rar","7z","tgz","tar","z","gzip","bzip","tar","mp3","mp4","aac","wav","au","wmv","avi","mpg","mpeg","pdf","doc","docx","xls","xlsx","ppt","pptx","jpg","jpeg","png","gif","psd","ico","bmp","odt","ods","odp","odb","odg","odf")
-
+  #page<-NULL
   page<-tryCatch(GET(url, user_agent(Useragent),timeout(Timeout)) , error=function(e) NULL)
+
   # 1 if domain exist (could resolve host name)
   if (!is.null(page)){
     # 2 if page exist (not 404,301,302,500,503,403)
@@ -52,14 +54,19 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URL
         x<-as.character(content(page, type = "htmlTreeParse", as="text", encoding = encod))
         cont<-x
         }
+        if(is.na(cont)){
+          x<-as.character(content(page, type = "htmlTreeParse", as="text", encoding = "ISO-8859-1"))
+          cont<-x
+        }
         x<-read_html(x)
         links<-xml2::xml_find_all(x, "//a/@href")
         links<-as.vector(paste(links))
         links<-gsub(" href=\"(.*)\"", "\\1", links)
         links<-unique(links)
-        links2 <- vector()
-        domain0 <- strsplit(gsub("http://|https://|www\\.", "", url), "/")[[c(1, 1)]]
-        domain <- paste(domain0, "/", sep="")
+        links2<- vector()
+        Extlinks<- vector()
+        domain0<- strsplit(gsub("http://|https://|www\\.", "", url), "/")[[c(1, 1)]]
+        domain<- paste(domain0, "/", sep="")
         # Link canonicalization
         links<-LinkNormalization(links,url)
         # Ignore Url parameters
@@ -81,7 +88,12 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URL
                   links2<-c(links2,links[s])
                 #calcul de nombre des liens OUT
                   nblinks<-nblinks+1
-                  }
+                }
+                 if(ExternalLInks){
+                   if ( !grepl(domain,links[s]) && !(links[s] %in% Extlinks) && !(ext %in% urlExtfilter)){
+                      Extlinks<-c(Extlinks,links[s])
+                   }
+                 }
               }
             }
           }
@@ -98,7 +110,7 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=5, URL
       links2 <- vector()
       pageinfo<-list(id,url,"NULL",lev,"","","","","")
             }
-  paquet<-list(pageinfo,links2)
+  paquet<-list(pageinfo,links2,Extlinks)
   return(paquet)
 }
 

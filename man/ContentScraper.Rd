@@ -4,19 +4,26 @@
 \alias{ContentScraper}
 \title{ContentScraper}
 \usage{
-ContentScraper(webpage, patterns, patnames, excludepat,
-  ManyPerPattern = FALSE, astext = TRUE, encod)
+ContentScraper(Url, HTmlText, XpathPatterns, CssPatterns, PatternsName,
+  ExcludeXpathPat, ExcludeCSSPat, ManyPerPattern = FALSE, astext = TRUE,
+  encod)
 }
 \arguments{
-\item{webpage}{character, a web page as text.}
+\item{Url}{character, one url or a vector of urls of web pages to scrape.}
 
-\item{patterns}{character vector, one or more XPath patterns to extract from the web page.}
+\item{HTmlText}{character, web page as HTML text to be scraped.use either Url or HtmlText not both.}
 
-\item{patnames}{character vector, given names for each xpath pattern to extract.}
+\item{XpathPatterns}{character vector, one or more XPath patterns to extract from the web page.}
 
-\item{excludepat}{character vector, one o more Xpath to exclude from the extracted content.}
+\item{CssPatterns}{character vector, one or more CSS selector patterns to extract from the web page.}
 
-\item{ManyPerPattern}{boolean, If False only the first matched element by the pattern is extracted (like in Blogs one page has one article/post and one title). Otherwise if set to True  all nodes matching the pattern are extracted (Like in galleries, listing or comments, one page has many elements with the same pattern )}
+\item{PatternsName}{character vector, given names for each xpath pattern to extract, just as an indication .}
+
+\item{ExcludeXpathPat}{character vector, one or more Xpath pattern to exclude from extracted content (like excluding quotes from forum replies or excluding middle ads from Blog post) .}
+
+\item{ExcludeCSSPat}{character vector, one or more Css pattern to exclude from extracted content.}
+
+\item{ManyPerPattern}{boolean, If False only the first matched element by the pattern is extracted (like in Blogs one page has one article/post and one title). Otherwise if set to True all nodes matching the pattern are extracted (Like in galleries, listing or comments, one page has many elements with the same pattern )}
 
 \item{astext}{boolean, default is TRUE, HTML and PHP tags is stripped from the extracted piece.}
 
@@ -26,15 +33,44 @@ ContentScraper(webpage, patterns, patnames, excludepat,
 return a named list of extracted content
 }
 \description{
-From a given web page as text _character_ and a set of named XPath patterns, this function extracts selected parts of the HTML document then it returns a list of extracted contents.
+ContentScraper
 }
 \examples{
 \dontrun{
-pageinfo<-LinkExtractor("http://glofile.com/index.php/2017/06/08/athletisme-m-a-rome/")
-#Retreive the webpge header and data
 
-Data<-ContentScraper(pageinfo[[1]][[10]],c("//head/title","//*/article"),c("title", "article"))
-#Extract the title and the article from webpage content using Xpaths
+DATA<-ContentScraper(Url ="http://glofile.com/index.php/2017/06/08/sondage-quel-budget/",
+CssPatterns = c(".entry-title",".published",".entry-content"), astext = TRUE)
+#Extract title, publishing date and article from the web page using css selectors
+
+txthml<-"<html><title>blah</title><div><p>I m the content</p></div></html>"
+DATA<-ContentScraper(HTmlText = txthml ,XpathPatterns = "//*/p")
+#The web page source can be provided also as HTML text (characters)
+
+DATA<-ContentScraper(Url ="http://glofile.com/index.php/2017/06/08/athletisme-m-a-rome/",
+XpathPatterns=c("//head/title","//*/article"),PatternsName=c("title", "article"))
+#Extract the title and the article from the web page using Xpath patterns,
+#Patterns Name are provided as an indication.
+urllist<-c("http://glofile.com/index.php/2017/06/08/sondage-quel-budget/",
+"http://glofile.com/index.php/2017/06/08/cyril-hanouna-tire-a-boulets-rouges-sur-le-csa/",
+"http://glofile.com/index.php/2017/06/08/placements-quelles-solutions-pour-doper/")
+
+DATA<-ContentScraper(Url =urllist, CssPatterns = c(".entry-title",".entry-content"),
+PatternsName = c("title","content"))
+#Extract titles and contents of all 3 given Urls using CSS selectors, As result DATA variable
+#will handle 6 elements.
+
+DATA<-ContentScraper(Url =urllist, CssPatterns = c(".entry-title",".comment-content p"),
+PatternsName = c("title","comments"), astext = TRUE, ManyPerPattern = TRUE)
+#Extract titles and comments from a list of blog posts, ManyPerPattern argument enables extracting
+#multiple similar elements from each page like comments,reviews, quotes and listing.
+
+DATA<-ContentScraper(Url = "https://bitcointalk.org/index.php?topic=2334331.0",
+CssPatterns = c(".post"),
+ExcludeCSSPat = c(".quote",".quoteheader"),
+PatternsName = c("posts"), ManyPerPattern = TRUE)
+# From this Forum post Url we extract the post title and all replies using these CSS selectors
+# c(".post"), However, we know that each reply contain the the previous Reply as quote so we exclude
+# all quotes and quotes header from extracted posts using ExcludeCSSPat c(".quote",".quoteheader a")
 }
 }
 \author{

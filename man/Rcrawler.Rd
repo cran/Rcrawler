@@ -5,11 +5,12 @@
 \title{Rcrawler}
 \usage{
 Rcrawler(Website, no_cores, no_conn, MaxDepth, DIR, RequestsDelay = 0,
-  Obeyrobots = FALSE, Useragent, Timeout = 5, URLlenlimit = 255,
+  Obeyrobots = FALSE, Useragent, Encod, Timeout = 5, URLlenlimit = 255,
   urlExtfilter, urlregexfilter, ignoreUrlParams, KeywordsFilter,
-  KeywordsAccuracy, statslinks = FALSE, Encod, ExtractPatterns, PatternsNames,
-  ExcludePatterns, ExtractAsText = TRUE, ManyPerPattern = FALSE,
-  NetworkData = FALSE)
+  KeywordsAccuracy, FUNPageFilter, ExtractXpathPat, ExtractCSSPat,
+  PatternsNames, ExcludeXpathPat, ExcludeCSSPat, ExtractAsText = TRUE,
+  ManyPerPattern = FALSE, NetworkData = FALSE, NetwExtLinks = FALSE,
+  statslinks = FALSE)
 }
 \arguments{
 \item{Website}{character, the root URL of the website to crawl and scrape.}
@@ -28,6 +29,8 @@ Rcrawler(Website, no_cores, no_conn, MaxDepth, DIR, RequestsDelay = 0,
 
 \item{Useragent}{character, the User-Agent HTTP header that is supplied with any HTTP requests made by this function.it is important to simulate different browser's user-agent to continue crawling without getting banned.}
 
+\item{Encod}{character, set the website caharacter encoding, by default the crawler will automatically detect the website defined character encoding.}
+
 \item{Timeout}{integer, the maximum request time, the number of seconds to wait for a response until giving up, in order to prevent wasting time waiting for responses from slow servers or huge pages, default to 5 sec.}
 
 \item{URLlenlimit}{integer, the maximum URL length limit to crawl, to avoid spider traps; default to 255.}
@@ -42,21 +45,27 @@ Rcrawler(Website, no_cores, no_conn, MaxDepth, DIR, RequestsDelay = 0,
 
 \item{KeywordsAccuracy}{integer value range bewteen 0 and 100, used only with KeywordsFilter parameter to determine the accuracy of web pages to collect. The web page Accuracy value is calculated using the number of matched keywords and their occurence.}
 
-\item{statslinks}{boolean, if TRUE, the crawler counts the number of input and output links of each crawled web page.}
+\item{FUNPageFilter}{function, filter out pages to collect by your custom function (prediction, calssification model). This function should take two arguments URL and Content then test the content arg if is eligible or not following your rules then finally it must returns TRUE or FALSE.}
 
-\item{Encod}{character, set the website caharacter encoding, by default the crawler will automatically detect the website defined character encoding.}
+\item{ExtractXpathPat}{character's vector, vector of xpath patterns to match for data extraction process.}
 
-\item{ExtractPatterns}{character's vector, vector of xpath patterns to use for data extraction process.}
+\item{ExtractCSSPat}{character's vector, vector of CSS selector pattern to match for data extraction process.}
 
 \item{PatternsNames}{character vector, given names for each xpath pattern to extract.}
 
-\item{ExcludePatterns}{character's vector, vector of xpath patterns to exclude from selected ExtractPatterns.}
+\item{ExcludeXpathPat}{character's vector, one or more Xpath pattern to exclude from extracted content ExtractCSSPat or ExtractXpathPat (like excluding quotes from forum replies or excluding middle ads from Blog post) .}
+
+\item{ExcludeCSSPat}{character's vector, similar to ExcludeXpathPat but using Css selectors.}
 
 \item{ExtractAsText}{boolean, default is TRUE, HTML and PHP tags is stripped from the extracted piece.}
 
 \item{ManyPerPattern}{boolean, ManyPerPattern boolean, If False only the first matched element by the pattern is extracted (like in Blogs one page has one article/post and one title). Otherwise if set to True  all nodes matching the pattern are extracted (Like in galleries, listing or comments, one page has many elements with the same pattern )}
 
 \item{NetworkData}{boolean, If set to TRUE, then the crawler map all the internal hyperlink connections within the given website and return DATA for Network construction using igraph or other tools.(two global variables is returned see details)}
+
+\item{NetwExtLinks}{boolean, If TRUE external hyperlinks (outlinks) also will be counted on Network edges and nodes.}
+
+\item{statslinks}{boolean, if TRUE, the crawler counts the number of input and output links of each crawled web page.}
 }
 \value{
 The crawling and scraping process may take a long time to finish, therefore, to avoid data loss in the case that a function crashes or stopped in the middle of action, some important data are exported at every iteration to R global environement:
@@ -66,7 +75,7 @@ The crawling and scraping process may take a long time to finish, therefore, to 
 
 - A repository in workspace that contains all downloaded pages (.html files)
 
-If data scraping is enabled by setting ExtractPatterns parameter:
+If data scraping is enabled by setting ExtractXpathPat or ExtractCSSPat parameter:
 
 - DATA: A list of lists in global environement holding scraped contents.
 
@@ -76,11 +85,11 @@ If NetworkData is set to TRUE two additional global variables returned by the fu
 
 - NetwIndex : Vector maps alls hyperlinks (nodes) with a unique integer ID
 
-- NetwEdges : data.frame representing edges of the network, with these column : From, To, Weight (the Depth level where the link connection has been discovered) and Type which actualy has a fixed value.
+- NetwEdges : data.frame representing edges of the network, with these column : From, To, Weight (the Depth level where the link connection has been discovered) and Type (1 for internal hyperlinks 2 for external hyperlinks).
 }
 \description{
-The crawler's main function, by providing only the website URL and the Xpath patterns to extract
-this function can crawl the whole website (traverse web pages and collect links) and scrape/extract
+The crawler's main function, by providing only the website URL and the Xpath or CSS selector patterns
+this function can crawl the whole website (traverse all web pages) download webpages, and scrape/extract
 its contents in an automated manner to produce a structured dataset. The process of a crawling
 operation is performed by several concurrent processes or nodes in parallel, so it's recommended to
 use 64bit version of R.
@@ -88,59 +97,70 @@ use 64bit version of R.
 \details{
 To start Rcrawler task you need the provide the root URL of the website you want to scrape, it can be a domain, a subdomain or a website section (eg. http://www.domain.com, http://sub.domain.com or http://www.domain.com/section/). The crawler then will go through all its internal links. The process of a crawling is performed by several concurrent processes or nodes in parallel, So, It is recommended to use R 64-bit version.
 
-For complexe charcter content such as arabic execute Sys.setlocale("LC_CTYPE","Arabic_Saudi Arabia.1256") then set the encoding of the web page in Rcrawler function.
+For more tutorials check https://github.com/salimk/Rcrawler/
+
+For scraping complexe character content such as arabic execute Sys.setlocale("LC_CTYPE","Arabic_Saudi Arabia.1256") then set the encoding of the web page in Rcrawler function.
 
 If you want to learn more about web scraper/crawler architecture, functional properties and implementation using R language, Follow this link and download the published paper for free .
 
 Link: http://www.sciencedirect.com/science/article/pii/S2352711017300110
 
-Don't forget to cite Rcrawler paper:
+Dont forget to cite Rcrawler paper:
 
 Khalil, S., & Fakir, M. (2017). RCrawler: An R package for parallel web crawling and scraping. SoftwareX, 6, 98-106.
 }
 \examples{
 
 \dontrun{
-
  Rcrawler(Website ="http://glofile.com/", no_cores = 4, no_conn = 4)
 
  #Crawl, index, and store web pages using 4 cores and 4 parallel requests
 
  Rcrawler(Website = "http://glofile.com/", urlregexfilter =  "/[0-9]{4}/[0-9]{2}/",
- ExtractPatterns = c("//*/article","//*/h1"), PatternsNames = c("content","title"))
+ ExtractXpathPat = c("//*/article","//*/h1"), PatternsNames = c("content","title"))
 
- #Crawl the website using the default configuration and scrape content matching two XPath
+  # Crawl the website using the default configuration and scrape content matching two XPath
   patterns only from post pages matching a specific regular expression "/[0-9]{4}/[0-9]{2}/".
-  Note that the user can use the excludepattern  parameter to exclude a node from being extracted,
-  e.g., in the case that a desired node includes (is a parent of) an undesired "child" node.
+  # Note that the user can use the excludepattern  parameter to exclude a node from being extracted,
+  # e.g., in the case that a desired node includes (is a parent of) an undesired "child" node.
 
   Rcrawler(Website = "http://www.example.com/", no_cores=8, no_conn=8, Obeyrobots = TRUE,
   Useragent="Mozilla 3.11")
   # Crawl and index the website using 8 cores and 8 parallel requests with respect to
-  robot.txt rules.
-
+  # robot.txt rules.
   Rcrawler(Website = "http://www.example.com/", no_cores = 4, no_conn = 4,
   urlregexfilter =  "/[0-9]{4}/[0-9]{2}/", DIR = "./myrepo", MaxDepth=3)
 
- # Crawl the website using  4 cores and 4 parallel requests. However, this will only
-  index URLs matching the regular expression pattern (/[0-9]{4}/[0-9]{2}/), and stores pages
-  in a custom directory "myrepo".
-  The crawler stops After reaching the third level of website depth.
+  # Crawl the website using  4 cores and 4 parallel requests. However, this will only
+  # index URLs matching the regular expression pattern (/[0-9]{4}/[0-9]{2}/), and stores pages
+  # in a custom directory "myrepo".
+  # The crawler stops After reaching the third level of website depth.
 
   Rcrawler(Website = "http://www.example.com/", KeywordsFilter = c("keyword1", "keyword2"))
- # Crawl the website and collect only webpages containing keyword1 or keyword2 or both.
+  # Crawl the website and collect only webpages containing keyword1 or keyword2 or both.
 
   Rcrawler(Website = "http://www.example.com/", KeywordsFilter = c("keyword1", "keyword2"),
    KeywordsAccuracy = 50)
- # Crawl the website and collect only webpages that has an accuracy percentage higher than 50\%
-  of matching keyword1 and keyword2.
+  # Crawl the website and collect only webpages that has an accuracy percentage higher than 50\%
+  # of matching keyword1 and keyword2.
 
-  Rcrawler(Website = "http://glofile.com/" , no_cores = 4, no_conn = 4, GraphData = TRUE)
+  Rcrawler(Website = "http://glofile.com/" , no_cores = 4, no_conn = 4, NetworkData = TRUE)
   # Crawl the entire website, and create network edges DATA of internal links.
   # Using Igraph for exmaple you can plot the network by the following commands
-  # library(igraph)
-  # network<-graph.data.frame(NetwEdges, directed=T)
-  # plot(network)
+   library(igraph)
+   network<-graph.data.frame(NetwEdges, directed=T)
+   plot(network)
+
+  Rcrawler(Website = "http://glofile.com/" , no_cores = 4, no_conn = 4, NetworkData = TRUE)
+  # Crawl the entire website, and create network edges DATA of internal and external links .
+  #FUNPageFilter parameter usage
+  # So first you create a function in your computer, it must take two arguments url, content
+  # then returns true or false.
+  # Inside the function you should test content variable using your rules
+  # Finally, you just call it inside Rcrawler function, Then the crawler will evaluate each
+   page using your function.
+   Rcrawler(Website = "http://glofile.com", no_cores=2, FUNPageFilter= Mytestfunction )
+
 }
 
 

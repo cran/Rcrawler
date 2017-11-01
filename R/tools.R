@@ -18,8 +18,19 @@ isTarget<-function(Data) {
       } else {
         x<-bitwOr(x,1)
       }
+    } else {
+      x<-bitwAnd(0,x)
     }
   }
   if(x==0) return(FALSE)
   else return(TRUE)
 }
+RemoveTags<-function(content){
+content<-gsub("<script\\b[^<]*>[^<]*(?:<(?!/script>)[^<]*)*</script>", "", content, perl=T)
+content<-gsub("<.*?>", "", content)
+content<-gsub(pattern = "\n" ," ", content)
+content<-gsub("^\\s+|\\s+$", "", content)
+return(content)
+}
+
+
