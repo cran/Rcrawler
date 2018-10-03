@@ -150,7 +150,7 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
   if (missing(no_conn)) no_conn<-no_cores
   if (missing(Obeyrobots)) Obeyrobots<-FALSE
   if (missing(urlregexfilter)){ urlregexfilter<-".*" }
-      else { urlregexfilter<-paste(urlregexfilter,collapse="|")}
+  else { urlregexfilter<-paste(urlregexfilter,collapse="|")}
   if(missing(Useragent)) {Useragent="Mozilla/5.0 (Windows NT 6.3; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0"}
   if(missing(Encod)) {
     Encod<- Getencoding(Website)
@@ -191,7 +191,7 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
     if(is.vector(ExtractCSSPat)){
       ExtractXpathPat<- unlist(lapply(ExtractCSSPat, FUN = function(x) { tryCatch(selectr::css_to_xpath(x, prefix = "//") ,error=function(e) stop("Unable to translate supplied css selector, Please check ExtractCSSPat syntax !"))}))
     } else {
-     stop("ExtractCSSPat parameter must be a vector with at least one element !")
+      stop("ExtractCSSPat parameter must be a vector with at least one element !")
     }
   }
   if(!missing(ExcludeCSSPat)) {
@@ -234,7 +234,7 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
 
   if(!missing(ExtractXpathPat)) {
     Filecontent <- file(paste(path,"/","extracted_contents.csv", sep = ""), "w")
-      }
+  }
   duplicatedetect<-FALSE
   #create Dataframe
   id<-vector()
@@ -268,12 +268,14 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
   #timef<<-vector()
   shemav <- vector()
   shemav<-c(shemav,Website)
-  M=length(shemav)
+  Lshemav<-list(shemav)
+  M=Listlength(Lshemav)
   lev<-0
   t<-1
   posx<-0
   i<-0
   posenv <- 1
+  chunksize<-10000
   envi = as.environment(posenv)
   #cluster initialisation
   cl <- makeCluster(no_cores)
@@ -287,25 +289,63 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
   #tmparallel<<-vector()
   #tminsertion<<-vector()
   #tminsertionreq<<-vector()
-  while (t<=length(shemav) && MaxDepth>=lev){
-        # extraire les liens sur la page
-        rest<-length(shemav)-t
-        #if(rest==0){ rest<-rest+1 }
-        if (no_conn<=rest){
-            l<-t+no_conn-1
-        } else {
-            l<-t+rest
-        }
-          #cat(t,"to",l,"size:",length(shemav))
-          #get links & pageinfo
-        if (RequestsDelay!=0) {
-            Sys.sleep(RequestsDelay)
-        }
-        #ptm <- proc.time()
-        allpaquet <- foreach(i=t:l,  .verbose=FALSE, .inorder=FALSE, .errorhandling='pass')  %dopar%
-          {
-          LinkExtractor(shemav[i],i,lev, IndexErrPages, Useragent, Timeout, URLlenlimit, urlExtfilter=urlExtfilter, encod = Encod, urlbotfiler = urlbotfiler, removeparams=ignoreUrlParams, ExternalLInks=NetwExtLinks )
-          }
+  while (t<=Listlength(Lshemav) && MaxDepth>=lev){
+    # extraire les liens sur la page
+    rest<-Listlength(Lshemav)-t
+    #if(rest==0){ rest<-rest+1 }
+    if (no_conn<=rest){
+      l<-t+no_conn-1
+    } else {
+      l<-t+rest
+    }
+    #cat(t,"to",l,"size:",length(shemav))
+    #get links & pageinfo
+    if (RequestsDelay!=0) {
+      Sys.sleep(RequestsDelay)
+    }
+    #ptm <- proc.time()
+    if(t<chunksize){
+      tt<-t
+      VposT<-1
+    } else {
+      VposT<-(t%/%chunksize)+1
+      tt<-t%%(chunksize*(t%/%chunksize))+1
+    }
+
+    if(l<chunksize){
+      ll<-l
+      VposL<-1
+    }else{
+      VposL<-(l%/%chunksize)+1
+      ll<-l%%(chunksize*(l%/%chunksize))+1
+    }
+    tmpshemav<-vector()
+    if(VposT!=VposL){
+      for(k in tt:(chunksize-1)) {
+          #bcat("k:",k)
+          tmpshemav<-c(tmpshemav,Lshemav[[VposT]][[k]])
+       }
+      for(r in 1:ll){
+        tmpshemav<-c(tmpshemav,Lshemav[[VposL]][[r]])
+        #cat("r:",r)
+      }
+      #topshemav<<-tmpshemav
+      #cat("VposT :",VposT," tt :",tt, " VposL :",VposL, " ll :",ll," tmpshema:",length(tmpshemav))
+      allpaquet <- foreach(i=1:length(tmpshemav),  .verbose=FALSE, .inorder=FALSE, .errorhandling='pass')  %dopar%
+      {
+        LinkExtractor(url = tmpshemav[[i]],id = i,lev = lev, IndexErrPages = IndexErrPages, Useragent = Useragent, Timeout = Timeout, URLlenlimit = URLlenlimit, urlExtfilter=urlExtfilter, encod = Encod, urlbotfiler = urlbotfiler, removeparams=ignoreUrlParams, ExternalLInks=NetwExtLinks)
+      }
+    } else {
+
+      #cat("VposT :",VposT," tt :",tt, " VposL :",VposL, " ll :",ll)
+      j<-0
+      allpaquet <- foreach(j=tt:ll,  .verbose=FALSE, .inorder=FALSE, .errorhandling='pass')  %dopar%
+      {
+        LinkExtractor(url = Lshemav[[VposT]][j],id = i,lev = lev, IndexErrPages = IndexErrPages, Useragent = Useragent, Timeout = Timeout, URLlenlimit = URLlenlimit, urlExtfilter=urlExtfilter, encod = Encod, urlbotfiler = urlbotfiler, removeparams=ignoreUrlParams, ExternalLInks=NetwExtLinks)
+      }
+    }
+
+
     #deb<<-allpaquet
     #for (j in t:l){
     #    cat(shemav[i]);
@@ -329,8 +369,8 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
       pos<-s+t-1
       cat(pos,"..", sep = "")
       flush.console()
-     # timev[pos]<<-Sys.time()
-     # timef[pos]<<-format(Sys.time(), "%M,%S")
+      # timev[pos]<<-Sys.time()
+      # timef[pos]<<-format(Sys.time(), "%M,%S")
       # Les page null ne sont pas ajouter au shema
       #debugg<<-allpaquet
       #debugg2<<-shemav
@@ -363,9 +403,9 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
           tmplinks<-c(tmplinks,unlist(allpaquet[[s]][[2]]))
           if(length(tmplinks) > 0 && length(pkg.env$shema[[2]])>0){
             for(NodeElm in tmplinks){
-            index<-chmatch(c(NodeElm),pkg.env$shema[[2]])
-             if(!is.na(index)){
-              pkg.env$shema[[6]][index]<-as.numeric(pkg.env$shema[[6]][index])+1
+              index<-chmatch(c(NodeElm),pkg.env$shema[[2]])
+              if(!is.na(index)){
+                pkg.env$shema[[6]][index]<-as.numeric(pkg.env$shema[[6]][index])+1
               }
             }
           }
@@ -373,155 +413,161 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
         links<-c(links,allpaquet[[s]][2])
         #debugg2<<-allpaquet[[s]][2]
         #amdebugg3<<-allpaquet[[s]][1]
-          if (allpaquet[[s]][[1]][[3]]!="NULL" && allpaquet[[s]][[1]][[10]]!="NULL" ){
-            #index URL filter
-              if (grepl(urlregexfilter,allpaquet[[s]][[1]][[2]])) {
+        if (allpaquet[[s]][[1]][[3]]!="NULL" && allpaquet[[s]][[1]][[10]]!="NULL" ){
+          #index URL filter
+          if (grepl(urlregexfilter,allpaquet[[s]][[1]][[2]])) {
 
-                if(!missing(FUNPageFilter)){
-                  contentx<-allpaquet[[s]][[1]][[10]]
-                  Notagcontentx<-RemoveTags(contentx)
-                  isContentvalide<-FUNPageFilter(allpaquet[[s]][[1]][[2]],contentx)
-                  if(!is.logical(isContentvalide)) stop ("FUNPageFilter function must return a logical value TRUE/FALSE")
-                  if (isContentvalide){
-                    #if(containtag) {
-                    #check for duplicate webpage & checksum calculation
-                    # if (duplicatedetect==TRUE){
-                    # hash<-getsimHash(contentx,128)
-                    # Ajouter au shema uniqument les liens non-repete
-                    # if (!(hash %in% pkg.env$shema$hashcode)){
-                    # posx, actual position of DF shema
-                    #  posx<-posx+1
-                    #  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],hash)
-                    #  filename<-paste(posx,".html")
-                    #  filepath<-paste(path,"/",filename, sep = "")
-                    #  write(allpaquet[[s]][[1]][[10]],filepath) }
-                    #  } else {
-                    if (!missing(ExtractXpathPat)) {
-                      excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, ManyPerPattern = ManyPerPattern, PatternsName = PatternsNames, encod=Encod)
-                      if(isTarget(excontent)){
-                        posx<-posx+1
-                        pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],paste0(Accuracy,"%"))
-                        filename<-paste0(posx,".html")
-                        filepath<-paste(path,"/",filename, sep = "")
-                        write(allpaquet[[s]][[1]][[10]],filepath)
+            if(!missing(FUNPageFilter)){
+              contentx<-allpaquet[[s]][[1]][[10]]
+              Notagcontentx<-RemoveTags(contentx)
+              isContentvalide<-FUNPageFilter(allpaquet[[s]][[1]][[2]],contentx)
+              if(!is.logical(isContentvalide)) stop ("FUNPageFilter function must return a logical value TRUE/FALSE")
+              if (isContentvalide){
+                #if(containtag) {
+                #check for duplicate webpage & checksum calculation
+                # if (duplicatedetect==TRUE){
+                # hash<-getsimHash(contentx,128)
+                # Ajouter au shema uniqument les liens non-repete
+                # if (!(hash %in% pkg.env$shema$hashcode)){
+                # posx, actual position of DF shema
+                #  posx<-posx+1
+                #  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],hash)
+                #  filename<-paste(posx,".html")
+                #  filepath<-paste(path,"/",filename, sep = "")
+                #  write(allpaquet[[s]][[1]][[10]],filepath) }
+                #  } else {
+                if (!missing(ExtractXpathPat)) {
+                  excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, ManyPerPattern = ManyPerPattern, PatternsName = PatternsNames, encod=Encod)
+                  if(isTarget(excontent)){
+                    posx<-posx+1
+                    pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],paste0(Accuracy,"%"))
+                    filename<-paste0(posx,".html")
+                    filepath<-paste(path,"/",filename, sep = "")
+                    write(allpaquet[[s]][[1]][[10]],filepath)
 
-                        if (missing(ExcludeXpathPat)){
-                          excontent<-c(posx,excontent)
-                          excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, ManyPerPattern=ManyPerPattern, astext = ExtractAsText, encod=Encod)
-                          pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
-                          write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
-                        }
-                        else {
-                          #x<<-allpaquet[[s]][[1]][[10]]
-                          excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, ManyPerPattern=ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat ,encod=Encod )
-                          excontent<-c(posx,excontent)
-                          excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, astext = ExtractAsText, ManyPerPattern=ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat, encod=Encod)
-                          pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
-                          write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
-                        }
-                        assign("DATA", pkg.env$Exdata, envir = envi )
-                      }
-                      # }
-                    } else {
-                      posx<-posx+1
-                      pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],Encod,paste0(Accuracy,"%"))
-                      filename<-paste(posx,".html")
-                      filepath<-paste(path,"/",filename, sep = "")
-                      write(allpaquet[[s]][[1]][[10]],filepath)
+                    if (missing(ExcludeXpathPat)){
+                      excontent<-c(posx,excontent)
+                      excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, ManyPerPattern=ManyPerPattern, astext = ExtractAsText, encod=Encod)
+                      pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
+                      write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
                     }
+                    else {
+                      #x<<-allpaquet[[s]][[1]][[10]]
+                      excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, ManyPerPattern=ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat ,encod=Encod )
+                      excontent<-c(posx,excontent)
+                      excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, astext = ExtractAsText, ManyPerPattern=ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat, encod=Encod)
+                      pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
+                      write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
+                    }
+                    assign("DATA", pkg.env$Exdata, envir = envi )
                   }
-
+                  # }
+                } else {
+                  posx<-posx+1
+                  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],Encod,paste0(Accuracy,"%"))
+                  filename<-paste(posx,".html")
+                  filepath<-paste(path,"/",filename, sep = "")
+                  write(allpaquet[[s]][[1]][[10]],filepath)
                 }
-                else if(keywordCheck){
-                    #check if page content contain some specific keywords
-                    contentx<-allpaquet[[s]][[1]][[10]]
-                    Notagcontentx<-RemoveTags(contentx)
-                    Accuracy<-sum(sapply(KeywordsFilter,function(x,y,z) Precifunc(x,length(KeywordsFilter),Notagcontentx) ,simplify = TRUE))
-                    if (Accuracy>=KeywordsAccuracy){
-                        #if(containtag) {
-                        #check for duplicate webpage & checksum calculation
-                        # if (duplicatedetect==TRUE){
-                        # hash<-getsimHash(contentx,128)
-                        # Ajouter au shema uniqument les liens non-repete
-                        # if (!(hash %in% pkg.env$shema$hashcode)){
-                        # posx, actual position of DF shema
-                        #  posx<-posx+1
-                        #  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],hash)
-                        #  filename<-paste(posx,".html")
-                        #  filepath<-paste(path,"/",filename, sep = "")
-                        #  write(allpaquet[[s]][[1]][[10]],filepath) }
-                        #  } else {
-                        if (!missing(ExtractXpathPat)) {
-                          excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, ManyPerPattern = ManyPerPattern, PatternsName = PatternsNames, encod=Encod )
-                          if(isTarget(excontent)){
-                                  posx<-posx+1
-                                  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],paste0(Accuracy,"%"))
-                                  filename<-paste(posx,".html")
-                                  filepath<-paste(path,"/",filename, sep = "")
-                                  write(allpaquet[[s]][[1]][[10]],filepath)
-
-                                  if (missing(ExcludeXpathPat)){
-                                  excontent<-c(posx,excontent)
-                                  excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat,PatternsName = PatternsNames, ManyPerPattern=ManyPerPattern, astext = ExtractAsText, encod=Encod)
-                                  pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
-                                  write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
-                                  }
-                                  else {
-                                    #x<<-allpaquet[[s]][[1]][[10]]
-                                  excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, ManyPerPattern=ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat, encod=Encod )
-                                  excontent<-c(posx,excontent)
-                                  excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, astext = ExtractAsText, ManyPerPattern=ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat, encod=Encod)
-                                  pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
-                                  write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
-                                  }
-                                  assign("DATA", pkg.env$Exdata, envir = envi )
-                            }
-                                    # }
-                        } else {
-                          posx<-posx+1
-                          pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],Encod,paste0(Accuracy,"%"))
-                          filename<-paste(posx,".html")
-                          filepath<-paste(path,"/",filename, sep = "")
-                          write(allpaquet[[s]][[1]][[10]],filepath)
-                        }
-                      }
-                  }
-                else {
-                      if (!missing(ExtractXpathPat)) {
-                        excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, ManyPerPattern = ManyPerPattern, PatternsName = PatternsNames, encod=Encod )
-                        if(isTarget(excontent)){
-                          posx<-posx+1
-                          pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],Encod,'')
-                          filename<-paste(posx,".html")
-                          filepath<-paste(path,"/",filename, sep = "")
-                          write(allpaquet[[s]][[1]][[10]],filepath)
-                          if (missing(ExcludeXpathPat)){
-                            excontent<-c(posx,excontent)
-                            excontent2<<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, ManyPerPattern = ManyPerPattern, PatternsName = PatternsNames, astext = ExtractAsText, encod=Encod)
-                            pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
-                            write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
-                          }
-                          else {
-                            #x<<-allpaquet[[s]][[1]][[10]]
-                            excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames,ManyPerPattern = ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat, encod=Encod )
-                            excontent<-c(posx,excontent)
-                            excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, ManyPerPattern = ManyPerPattern, astext = ExtractAsText, ExcludeXpathPat = ExcludeXpathPat, encod=Encod)
-                            pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
-                            write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
-                          }
-                          assign("DATA", pkg.env$Exdata, envir = envi )
-                        }
-                      } else {
-                        posx<-posx+1
-                        pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],1,allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],Encod,'')
-                        filename<-paste(posx,".html")
-                        filepath<-paste(path,"/",filename, sep = "")
-                        write(allpaquet[[s]][[1]][[10]],filepath)
-                      }
-                }
-
               }
+
+            }
+            else if(keywordCheck){
+              #check if page content contain some specific keywords
+              contentx<-allpaquet[[s]][[1]][[10]]
+              Notagcontentx<-tolower(gsub("\\W", " ",RemoveTags(contentx), perl=TRUE))
+
+              AccuracyResult <- foreach(i=1:length(KeywordsFilter),  .verbose=FALSE, .inorder=FALSE, .errorhandling='pass', .combine=c)  %dopar%
+              {
+                Precifunc(KeywordsFilter[i],length(KeywordsFilter),Notagcontentx)
+              }
+               Accuracy<-sum(AccuracyResult)
+               #Accuracy<-sum(sapply(KeywordsFilter,function(x,y,z) Precifunc(x,length(KeywordsFilter),Notagcontentx) ,simplify = TRUE))
+              if (Accuracy>=KeywordsAccuracy){
+                #if(containtag) {
+                #check for duplicate webpage & checksum calculation
+                # if (duplicatedetect==TRUE){
+                # hash<-getsimHash(contentx,128)
+                # Ajouter au shema uniqument les liens non-repete
+                # if (!(hash %in% pkg.env$shema$hashcode)){
+                # posx, actual position of DF shema
+                #  posx<-posx+1
+                #  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],hash)
+                #  filename<-paste(posx,".html")
+                #  filepath<-paste(path,"/",filename, sep = "")
+                #  write(allpaquet[[s]][[1]][[10]],filepath) }
+                #  } else {
+                if (!missing(ExtractXpathPat)) {
+                  excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, ManyPerPattern = ManyPerPattern, PatternsName = PatternsNames, encod=Encod )
+                  if(isTarget(excontent)){
+                    posx<-posx+1
+                    pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],allpaquet[[s]][[1]][[9]],paste0(Accuracy,"%"))
+                    filename<-paste(posx,".html")
+                    filepath<-paste(path,"/",filename, sep = "")
+                    write(allpaquet[[s]][[1]][[10]],filepath)
+
+                    if (missing(ExcludeXpathPat)){
+                      excontent<-c(posx,excontent)
+                      excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat,PatternsName = PatternsNames, ManyPerPattern=ManyPerPattern, astext = ExtractAsText, encod=Encod)
+                      pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
+                      write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
+                    }
+                    else {
+                      #x<<-allpaquet[[s]][[1]][[10]]
+                      excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, ManyPerPattern=ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat, encod=Encod )
+                      excontent<-c(posx,excontent)
+                      excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, astext = ExtractAsText, ManyPerPattern=ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat, encod=Encod)
+                      pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
+                      write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
+                    }
+                    assign("DATA", pkg.env$Exdata, envir = envi )
+                  }
+                  # }
+                } else {
+                  posx<-posx+1
+                  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],Encod,paste0(format(round(Accuracy, 2),nsmall = 2),"%"))
+                  filename<-paste(posx,".html")
+                  filepath<-paste(path,"/",filename, sep = "")
+                  write(allpaquet[[s]][[1]][[10]],filepath)
+                }
+              }
+            }
+            else {
+              if (!missing(ExtractXpathPat)) {
+                excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, ManyPerPattern = ManyPerPattern, PatternsName = PatternsNames, encod=Encod )
+                if(isTarget(excontent)){
+                  posx<-posx+1
+                  pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],"",allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],Encod,'')
+                  filename<-paste(posx,".html")
+                  filepath<-paste(path,"/",filename, sep = "")
+                  write(allpaquet[[s]][[1]][[10]],filepath)
+                  if (missing(ExcludeXpathPat)){
+                    excontent<-c(posx,excontent)
+                    excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, ManyPerPattern = ManyPerPattern, PatternsName = PatternsNames, astext = ExtractAsText, encod=Encod)
+                    pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
+                    write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
+                  }
+                  else {
+                    #x<<-allpaquet[[s]][[1]][[10]]
+                    excontent<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames,ManyPerPattern = ManyPerPattern, ExcludeXpathPat = ExcludeXpathPat, encod=Encod )
+                    excontent<-c(posx,excontent)
+                    excontent2<-ContentScraper(HTmlText = allpaquet[[s]][[1]][[10]],XpathPatterns = ExtractXpathPat, PatternsName = PatternsNames, ManyPerPattern = ManyPerPattern, astext = ExtractAsText, ExcludeXpathPat = ExcludeXpathPat, encod=Encod)
+                    pkg.env$Exdata<-c(pkg.env$Exdata, list(excontent2))
+                    write.table(excontent, file = Filecontent, sep = ";", qmethod="double" ,row.names = FALSE, col.names = FALSE, na = "NA" )
+                  }
+                  assign("DATA", pkg.env$Exdata, envir = envi )
+                }
+              } else {
+                posx<-posx+1
+                pkg.env$shema[posx,]<-c(posx,allpaquet[[s]][[1]][[2]],"finished",allpaquet[[s]][[1]][[4]],allpaquet[[s]][[1]][[5]],1,allpaquet[[s]][[1]][[7]],allpaquet[[s]][[1]][[8]],Encod,'')
+                filename<-paste(posx,".html")
+                filepath<-paste(path,"/",filename, sep = "")
+                write(allpaquet[[s]][[1]][[10]],filepath)
+              }
+            }
+
           }
+        }
       }
 
       if(pos==M){
@@ -537,28 +583,58 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
     # remplir le shema
     if (length(links)>0){
       #for (i in 1:length(links)){
-        # Ajouter au shema uniqument les urls non repete
-       # if (!(links[i] %in% shemav) ){
-        #  shemav<-c(shemav,links[i])
-          #shema[length(shemav),]<<-c(length(shemav),links[i],"waiting","","","1","","","")
-        #}}
-      shemav<-c( shemav , links[ ! links %chin% shemav ] )
+      # Ajouter au shema uniqument les urls non repete
+      # if (!(links[i] %in% shemav) ){
+      #  shemav<-c(shemav,links[i])
+      #shema[length(shemav),]<<-c(length(shemav),links[i],"waiting","","","1","","","")
+      #}}
+      #shemav<-c( shemav , links[ ! links %chin% shemav ] )
+
+      for (L in links){
+        LshemaSize<-length(Lshemav)
+        s<-length(Lshemav[[LshemaSize]])+1
+        if (s<chunksize){
+          dec<-1
+          for (vec in Lshemav){
+            if( L %chin% vec) dec<-bitwAnd(0,dec)
+          }
+          if(dec==1) {
+            Lshemav[[LshemaSize]][s]<-L
+            s<-s+1
+          }
+        } else {
+          LshemaSize<-LshemaSize+1
+          s<-1
+          dec<-1
+          for (vec in Lshemav){
+            if( L %chin% vec) dec<-bitwAnd(0,dec)
+          }
+          if(dec==1){
+            Lshemav<-c(Lshemav,c(L))
+            s<-s+1
+          }
+        }
+      }
+      #Lshemavv<<-Lshemav
+      #cat ("shemav:", length(shemav), " Lshema:",Listlength(Lshemav))
+
       #calculate level
       if(getNewM){
-       M=length(shemav)
-       getNewM<-FALSE
+        M=Listlength(Lshemav)
+        getNewM<-FALSE
       }
     }
     #tminsertion<<-c(tminsertion,(proc.time() - ptm )[3])
     #tminsertionreq<<-c(tminsertionreq,format(Sys.time(), "%M,%S"))
-    cat("Progress:",format(round(((t/length(shemav))*100), 2),nsmall = 2),"%  : ",t, " parssed from ",length(shemav)," | Collected pages:",length(pkg.env$shema$Id)," | Level:",lev,"\n")
-    t<-l+1
+    cat("Progress:",format(round(((t/Listlength(Lshemav))*100), 2),nsmall = 2),"%  : ",t, " parssed from ",Listlength(Lshemav)," | Collected pages:",length(pkg.env$shema$Id)," | Level:",lev,"\n")
+    # t<-l+1
+    t<-t+length(allpaquet)
     if(NetworkData){
-    assign("NetwEdges", pkg.env$GraphEgdes, envir = envi )
-    assign("NetwIndex", pkg.env$GraphINDEX, envir = envi )
+      assign("NetwEdges", pkg.env$GraphEgdes, envir = envi )
+      assign("NetwIndex", pkg.env$GraphINDEX, envir = envi )
     }
     assign("INDEX", pkg.env$shema, envir = envi )
-   #tmp<<-shemav
+    #tmp<<-shemav
   }
   if(!missing(ExtractXpathPat)) {
     close(Filecontent)
@@ -582,5 +658,3 @@ Rcrawler <- function(Website, no_cores,no_conn, MaxDepth, DIR, RequestsDelay=0,O
   }
 
 }
-
-

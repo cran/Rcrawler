@@ -34,7 +34,7 @@ LinkExtractor(url, id, lev, IndexErrPages, Useragent, Timeout = 6,
 \item{ExternalLInks}{boolean, default FALSE, if set to TRUE external links also are returned.}
 }
 \value{
-return a list of two elements, the first is a list containing the web page details (url, encoding-type, content-type, content ... etc), the second is a character-vector containing the list of retreived urls.
+return a list of three elements, the first is a list containing the web page details (url, encoding-type, content-type, content ... etc), the second is a character-vector containing the list of retreived urls and the third is a vetor of external Urls scraped from the page.
 }
 \description{
 A function that take a _charachter_ url as input, fetches its html document, and extract all links following a set of rules.

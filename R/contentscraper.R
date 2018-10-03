@@ -97,7 +97,8 @@ ContentScraper <- function(Url, HTmlText, XpathPatterns, CssPatterns, PatternsNa
       x<-xml2::read_html(HTmlText, encoding = encod)
       if(ManyPerPattern){
         if (astext && missing(ExcludeXpathPat)){
-          contentx<-lapply(XpathPatterns,function(n) { tryCatch(xml_text(xml_find_all(x,n)),error=function(e) "" ) })
+          invisible(xml_remove(xml_find_all(x, "//script")))
+          contentx<-lapply(XpathPatterns,function(n) { tryCatch(xml_text(xml_find_all(x,n)),error=function(e) "NA" ) })
 
         } else{
           contentx<-lapply(XpathPatterns,function(n) { tryCatch(paste(xml_find_all(x,n)),error=function(e) "" ) })
@@ -143,6 +144,7 @@ ContentScraper <- function(Url, HTmlText, XpathPatterns, CssPatterns, PatternsNa
         }
       } else {
         if (astext && missing(ExcludeXpathPat)){
+          invisible(xml_remove(xml_find_all(x, "//script")))
           contentx<-lapply(XpathPatterns,function(n) { tryCatch(xml_text(xml_find_first(x,n)),error=function(e) "" ) })
         } else{
           contentx<-lapply(XpathPatterns,function(n) { tryCatch(paste(xml_find_first(x,n)),error=function(e) "" ) })

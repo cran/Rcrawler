@@ -13,7 +13,7 @@
 #' @param urlbotfiler character vector , directories/files restricted by robot.txt
 #' @param encod character, specify the encoding of th web page
 #' @param removeparams character vector, list of url parameters to be removed/ignored
-#' @return return a list of two elements, the first is a list containing the web page details (url, encoding-type, content-type, content ... etc), the second is a character-vector containing the list of retreived urls.
+#' @return return a list of three elements, the first is a list containing the web page details (url, encoding-type, content-type, content ... etc), the second is a character-vector containing the list of retreived urls and the third is a vetor of external Urls scraped from the page.
 #' @author salim khalil
 #' @import httr xml2 data.table
 #' @examples
@@ -30,6 +30,8 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=6, URL
                           urlExtfilter, encod, urlbotfiler, removeparams, ExternalLInks=FALSE) {
   nblinks<-0
   pageinfo<-list()
+  links2<- vector()
+  Extlinks<- vector()
   if (missing(removeparams)) removeparams<-""
   if (missing(urlbotfiler)) urlbotfiler<-" "
   if (missing(id)) id<-sample(1:1000, 1)
@@ -63,8 +65,6 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=6, URL
         links<-as.vector(paste(links))
         links<-gsub(" href=\"(.*)\"", "\\1", links)
         links<-unique(links)
-        links2<- vector()
-        Extlinks<- vector()
         domain0<- strsplit(gsub("http://|https://|www\\.", "", url), "/")[[c(1, 1)]]
         domain<- paste(domain0, "/", sep="")
         # Link canonicalization
@@ -93,23 +93,33 @@ LinkExtractor <- function(url, id, lev, IndexErrPages, Useragent, Timeout=6, URL
                    if ( !grepl(domain,links[s]) && !(links[s] %in% Extlinks) && !(ext %in% urlExtfilter)){
                       Extlinks<-c(Extlinks,links[s])
                    }
-                 }
+                 }  else{
+                   Extlinks <- vector()
+                   }
               }
             }
           }
-        } else links2 <- vector()
+        } else {
+          links2 <- vector()
+          Extlinks <- vector()
+        }
       } else {links2 <- vector()
-              cont<-"NULL"}
+              cont<-"NULL"
+              Extlinks <- vector()
+              }
     } else {links2 <- vector()
-            cont<-"NULL"}
+            cont<-"NULL"
+            Extlinks <- vector()
+            }
     #Ligne - page detail
     contenttype<-tryCatch(gsub("(.*)\\;.*", "\\1", page$headers$`content-type`), error=function(e) "NA")
-    contentencod<-tryCatch(gsub("(.*)=(.*)","\\2",gsub(".*\\;.", "\\1", page$headers$`content-type`)), error=function(e) "NA")
-    pageinfo<-list(id,url,"finished",lev,nblinks,"",page$status_code,contenttype,contentencod,cont)
+    contentencod<-tryCatch(gsub("(.*)=(.*)","\\2", gsub(".*\\;.", "\\1", page$headers$`content-type`)), error=function(e) "NA")
+    pageinfo<-list(id,url,"finished",lev,nblinks,"", page$status_code, contenttype, contentencod, cont)
     }else {
       links2 <- vector()
+      Extlinks <- vector()
       pageinfo<-list(id,url,"NULL",lev,"","","","","")
-            }
+    }
   paquet<-list(pageinfo,links2,Extlinks)
   return(paquet)
 }

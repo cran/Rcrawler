@@ -5,12 +5,12 @@
 \title{Rcrawler}
 \usage{
 Rcrawler(Website, no_cores, no_conn, MaxDepth, DIR, RequestsDelay = 0,
-  Obeyrobots = FALSE, Useragent, Encod, Timeout = 5, URLlenlimit = 255,
-  urlExtfilter, urlregexfilter, ignoreUrlParams, KeywordsFilter,
-  KeywordsAccuracy, FUNPageFilter, ExtractXpathPat, ExtractCSSPat,
-  PatternsNames, ExcludeXpathPat, ExcludeCSSPat, ExtractAsText = TRUE,
-  ManyPerPattern = FALSE, NetworkData = FALSE, NetwExtLinks = FALSE,
-  statslinks = FALSE)
+  Obeyrobots = FALSE, Useragent, Encod, Timeout = 5,
+  URLlenlimit = 255, urlExtfilter, urlregexfilter, ignoreUrlParams,
+  KeywordsFilter, KeywordsAccuracy, FUNPageFilter, ExtractXpathPat,
+  ExtractCSSPat, PatternsNames, ExcludeXpathPat, ExcludeCSSPat,
+  ExtractAsText = TRUE, ManyPerPattern = FALSE, NetworkData = FALSE,
+  NetwExtLinks = FALSE, statslinks = FALSE)
 }
 \arguments{
 \item{Website}{character, the root URL of the website to crawl and scrape.}

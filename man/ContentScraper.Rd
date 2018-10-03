@@ -5,8 +5,8 @@
 \title{ContentScraper}
 \usage{
 ContentScraper(Url, HTmlText, XpathPatterns, CssPatterns, PatternsName,
-  ExcludeXpathPat, ExcludeCSSPat, ManyPerPattern = FALSE, astext = TRUE,
-  encod)
+  ExcludeXpathPat, ExcludeCSSPat, ManyPerPattern = FALSE,
+  astext = TRUE, encod)
 }
 \arguments{
 \item{Url}{character, one url or a vector of urls of web pages to scrape.}
