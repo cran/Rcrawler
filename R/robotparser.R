@@ -5,19 +5,22 @@
 #' @param useragent character, the useragent of the crawler
 #' @return
 #' return a list of three elements, the first is a character vector of Disallowed directories, the third is a Boolean value which is TRUE if the user agent of the crawler is blocked.
-#' @import httr
+#' @importFrom  httr GET
+#' @importFrom  httr user_agent
+#' @importFrom  httr timeout
+#' @importFrom  httr content
 #' @export
 #'
 #' @examples
 #'
-#' RobotParser("http://www.glofile.com","AgentX")
+#' #RobotParser("http://www.glofile.com","AgentX")
 #' #Return robot.txt rules and check whether AgentX is blocked or not.
 #'
 #'
 RobotParser <- function(website, useragent) {
   URLrobot<-paste(website,"/robots.txt", sep = "")
-  bots<-GET(URLrobot, user_agent("Mozilla/5.0 (Windows NT 6.3; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0"),timeout(5))
-  bots<-as.character(content(bots, as="text"))
+  bots<-httr::GET(URLrobot, httr::user_agent("Mozilla/5.0 (Windows NT 6.3; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0"),httr::timeout(5))
+  bots<-as.character(httr::content(bots, as="text", encoding = "UTF-8"))
   write(bots, file = "robots.txt")
   bots <- readLines("robots.txt") # dans le repertoire du site
   if (missing(useragent)) useragent<-"Rcrawler"

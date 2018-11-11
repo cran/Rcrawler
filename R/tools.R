@@ -1,12 +1,30 @@
 Precifunc<-function(keyword,sizekey,text) {
   t<-0
   m<-0
-  m<-sum(gregexpr(paste0(" ",tolower(keyword)," ") ,text, fixed=TRUE)[[1]] > 0)
-  if (m>=5)(m<-5)
+  m<-sum(gregexpr(keyword ,text ,ignore.case = TRUE)[[1]] > 0)
+  if(m>=5) m<-5
   if(m>0) t<-100/sizekey
   if(m>1) t<-t+(m*(100/(sizekey*5)))
   t<-t/2
   return(t)
+}
+
+NormalizeForExcel<- function(dta){
+
+  max<-length(dta[[1]]);
+  for(i in 1:length(dta)){
+    if(length(dta[[i]])>max) max<-length(dta[[i]])
+  }
+  if(max>1){
+    for(i in 1:length(dta)){
+      if(length(dta[[i]])==0){
+        dta[[i]]<-rep(NA, max)
+      } else if(length(dta[[i]])<max){
+        dta[[i]]<-rep(dta[[i]][[1]], max)
+      }
+    }
+  }
+  dta
 }
 
 isTarget<-function(Data) {
@@ -80,3 +98,69 @@ ReplaceX <- function(xx, real){
   newpath<-substr(newpath, 2, nchar(newpath))
   return(newpath)
 }
+
+is_windows <- function() .Platform$OS.type == "windows"
+
+is_osx     <- function() Sys.info()[['sysname']] == 'Darwin'
+
+is_linux   <- function() Sys.info()[['sysname']] == 'Linux'
+
+dir_exists <- function(path) utils::file_test('-d', path)
+
+is_string <- function(x) {
+  is.character(x) && length(x) == 1 && !is.na(x)
+}
+
+
+#' @importFrom  data.table %chin%
+getDomain<-function(urls){
+  tlds<-c('sport',       'isla',       'army',       'navy',       'agrar',       'name',       'priv',       'info',
+          'from',       'csiro',       'conf',       'coop',       'press',       'asso',       'aero',       'museum',
+          'school',       'maori',       'presse',       'tourism',       'game',       'geek',       'gouv',       'brand',
+          'shop',       'store',       'adult',       'muni',       'firm')
+  rDomains<-vector()
+  for (url in urls ){
+    urlpart<-strsplit(url, split = ".",fixed = TRUE)[[1]]
+    #cat(length(urlpart))
+    dom<-0
+    if(length(urlpart)==3){
+      if(nchar(urlpart[length(urlpart)-1])>3 && !(urlpart[length(urlpart)-1] %chin% tlds) ){
+        for (i in 1:(length(urlpart)-1)) {
+          if(dom==0) { dom<-paste0("",urlpart[i])
+          }else{ dom<-paste0(dom,".",urlpart[i])}
+        }
+
+      } else {
+        for (i in 1:(length(urlpart)-2)) {
+          if(dom==0) { dom<-paste0("",urlpart[i])
+          }else{ dom<-paste0(dom,".",urlpart[i])}
+
+        }
+      }
+    } else if(length(urlpart)>3){
+      dom<-0
+      for (i in 1:(length(urlpart)-2)) {
+        if(dom==0) { dom<-paste0("",urlpart[i])
+        }else{ dom<-paste0(dom,".",urlpart[i])}
+      }
+    } else {
+      dom<-0
+      for (i in 1:(length(urlpart)-1)) {
+        if(dom==0) { dom<-paste0("",urlpart[i])
+        }else{ dom<-paste0(dom,".",urlpart[i])}
+      }
+    }
+
+    if(dom!=0) rDomains<-c(rDomains,dom)
+  }
+  rDomains
+}
+
+IsSubDomain <-function(domain){
+  dom<-getDomain(domain)
+  issubdom<-FALSE
+  if (length(strsplit(dom, split = ".",fixed = TRUE)[[1]])>=2) issubdom<-TRUE
+  else issubdom<-FALSE
+  issubdom
+}
+

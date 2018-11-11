@@ -1,13 +1,14 @@
 #' Link Normalization
 #'
-#' A function that take a URL _charachter_ as input, and transforms it into a canonical form.
-#' @param links character, the URL to Normalize.
-#' @param current character, The URL of the current page source of the link.
+#' To normalize and transform URLs into a canonical form.
+#'
+#' @param links character, one or more URLs to Normalize.
+#' @param current character, The current page URL where links are located
 #' @return
-#' return the simhash as a nmeric value
+#' Vector of normalized urls
+#'
 #' @author salim khalil
-#' @details
-#' This funcion call an external java class
+#'
 #' @export
 #'
 #' @examples
@@ -19,12 +20,16 @@
 #'          "./section/subscription.php",
 #'          "//section/",
 #'          "www.glofile.com/home/",
+#'          "IndexEn.aspx",
 #'          "glofile.com/sport/foot/page.html",
 #'          "sub.glofile.com/index.php",
-#'          "http://glofile.com/page.html#1"
+#'          "http://glofile.com/page.html#1",
+#'          "?tags%5B%5D=votingrights&amp;sort=popular"
 #'                    )
 #'
 #' links<-LinkNormalization(links,"http://glofile.com" )
+#'
+#' links
 #'
 #'
 LinkNormalization<-function(links, current){
@@ -43,11 +48,13 @@ LinkNormalization<-function(links, current){
         if(sum(gregexpr("http", links[t], fixed=TRUE)[[1]] > 0)<2){
             # remove spaces
             if(grepl("^\\s|\\s+$",links[t])) {links[t]<-gsub("^\\s|\\s+$", "", links[t] , perl=TRUE)}
+
             #if starts with / add base
             if (substr(links[t],1,1)=="/"){
-                links[t]<-paste0(protocole,"//",base,links[t]) }
+                links[t]<-paste0(protocole,"//",base,links[t])
+            }
             #if sarts with ./ add base
-            if (substr(links[t],1,2)=="./") {
+            else if (substr(links[t],1,2)=="./") {
             # la url current se termine par /
               if(substring(current, nchar(current)) == "/"){
                       links[t]<-paste0(current,gsub("\\./", "",links[t]))
@@ -55,33 +62,43 @@ LinkNormalization<-function(links, current){
               } else {
                       links[t]<-paste0(current,gsub("\\./", "/",links[t]))
               }
-            }
 
-            #if(substr(link,1,1)=="/" && substr(link,1,2)!="//") { link<-paste("http://www.",base, link, sep="") }
+            # if sarts with www add base
+            } else if (substr(links[t],1,3)=="www"){
+                links[t]<-paste0(protocole,"//",links[t])
 
-            # Si le lien ne contient pas le protocle ajouter le
-            #if((substr(links[t],1,7)!="http://") && (substr(links[t],1,8)!="https://") && grepl(base2,links[t])){
-            #   links[t]<-paste0(paste0(protocole,"//"),links[t])
-            #}
-
-             #if(substr(links[t],1,10)!="http://www" && substr(links[t],1,7)=="http://") { links[t]<-gsub('(?<=:)(//)(?!www)','\\1www.',links[t],perl=T)}
-
-
-            if(substr(current,1,10)=="http://www" || substr(current,1,11)=="https://www") {
-
-                if(substr(links[t],1,10)!="http://www" && substr(links[t],1,11)!="https://www" && substr(links[t],1,8)!="https://" && substr(links[t],1,7)!="http://" ){
-                     if (substr(links[t],1,3)=="www") {
-                       links[t]<-paste0(protocole,"//",links[t])
-                     } else {
-                      links[t]<-paste0(protocole,"//www.",links[t])
-                     }
-                     #links[t]<-gsub('(?<=:)(//)(?!www)','\\1www.',links[t],perl=T)}
+              # if sarts with ?
+            }else if (substr(links[t],1,1)=="?"){
+                if(substring(current, nchar(current)) == "/"){
+                  links[t]<-paste0(current,links[t])
+                  # si non
+                } else {
+                  links[t]<-paste0(current,"/",links[t])
                 }
-            }else {
-                if(substr(links[t],1,7)!="http://" && substr(links[t],1,8)!="https://" ){
+
+            # if sarts with current domain
+            } else if(grepl( pattern = paste0("^",gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", base2,ignore.case = TRUE),".*"),x =links[t])){
+              if(grepl( pattern ="www",current ,ignore.case = TRUE)){
+                  links[t]<-paste0(protocole,"//www.",links[t])
+              }else {
                   links[t]<-paste0(protocole,"//",links[t])
-                   }
+              }
+
+            # if sarts with subdomain
+            } else if(substr(links[t],1,7)!="http://" && substr(links[t],1,8)!="https://" && substr(links[t],1,3)!="www"
+                      && grepl( pattern = paste0("[A-Za-z]*",gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", paste0(".",base2),".*")), x = links[t], ignore.case = TRUE)){
+              links[t]<-paste0(protocole,"//",links[t])
+              # if relative
+            } else if(substr(links[t],1,7)!="http://" && substr(links[t],1,8)!="https://" && substr(links[t],1,3)!="www"
+                      && !grepl( pattern = paste0(".*",gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1",base2,".*")), x = links[t], ignore.case = TRUE) ){
+              if(substring(current, nchar(current)) == "/"){
+                links[t]<-paste0(current,links[t])
+                # si non
+              } else {
+                links[t]<-paste0(current,"/",links[t])
+              }
             }
+
             if(grepl("#",links[t])){links[t]<-gsub("\\#(.*)","",links[t])}
 
             rlinks <- c(rlinks,links[t])
